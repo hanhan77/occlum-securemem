@@ -1,12 +1,20 @@
 FROM occlum/occlum:0.31.0-ubuntu20.04
 
-# 安装新版 GCC 10，以提供支持 GLIBCXX_3.4.26 的 libstdc++
-RUN apt-get update && \
-    apt-get install -y software-properties-common && \
-    add-apt-repository ppa:ubuntu-toolchain-r/test && \
-    apt-get update && \
-    apt-get install -y gcc-10 g++-10 curl git cmake wget \
-                       build-essential libssl-dev pkg-config
+RUN rm -f /etc/apt/sources.list.d/intel-sgxsdk.list
+ENV GO111MODULE=on
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    gcc \
+    g++ \
+    make \
+    cmake \
+    git \
+    wget \
+    libssl-dev \
+    pkg-config
+
 
 RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 && \
     update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 100
