@@ -3,8 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
-
-	"securemem"
+	"occlum-securemem/securemem"
 )
 
 type User struct {
@@ -21,6 +20,7 @@ func main() {
 		log.Fatalf("Failed to create vault: %v", err)
 	}
 
+	// 模拟加密保存结构体
 	user := User{ID: 42, Name: "Alice", Email: "alice@example.com"}
 	if err := vault.Put("user1", user); err != nil {
 		log.Fatalf("Put failed: %v", err)
