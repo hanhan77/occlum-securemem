@@ -1,4 +1,4 @@
-FROM occlum/occlum:0.31.0-ubuntu20.04 AS builder
+FROM occlum/occlum:0.31.0-ubuntu22.04 AS builder
 
 # 安装依赖
 RUN apt-get update && apt-get install -y \

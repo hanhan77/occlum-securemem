@@ -1,16 +1,13 @@
 {
-    "resource_limits": {
-      "user_space_size": "512MB",
-      "kernel_space_heap_size": "64MB",
-      "max_num_of_threads": 64
+   "resource_limits": {
+        "user_space_size": "1024MB",
+        "kernel_space_heap_size": "128MB",
+        "max_num_of_threads": 64
     },
     "process": {
-      "default_stack_size": "8MB",
-      "default_heap_size": "128MB",
-      "default_mmap_size": "256MB",
-      "env": {
-        "RUST_BACKTRACE": "1"
-      }
+        "default_stack_size": "8MB",
+        "default_heap_size": "256MB",
+        "default_mmap_size": "512MB"
     },
     "entry_points": ["/bin/app"],
     "fs": {
