@@ -15,10 +15,6 @@ RUN apt-get update && apt-get install -y \
     libssl-dev \
     pkg-config
 
-
-RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 100 && \
-    update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 100
-
 # 修复 GLIBCXX_3.4.26 缺失问题
 RUN cp /usr/lib/x86_64-linux-gnu/libstdc++.so.6 /usr/local/occlum/x86_64-linux-musl/lib/
 
