@@ -2,34 +2,47 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"occlum-securemem/securemem"
+	"os"
 )
 
 type User struct {
-	ID    int    `json:"id"`
-	Name  string `json:"name"`
-	Email string `json:"email"`
+	ID    int
+	Name  string
+	Email string
 }
 
 func main() {
-	fmt.Println("Secure Memory Vault Demo (SGX + Occlum + Go)")
+	fmt.Println("Secure Memory Vault Persistent Demo (SGX + Occlum + Go)")
 
-	vault, err := securemem.NewMemoryVault()
-	if err != nil {
-		log.Fatalf("Failed to create vault: %v", err)
+	const persistPath = "/data-secure/vault.bin"
+
+	// 创建或加载 vault
+	var vault *securemem.MemoryVault
+	if _, err := os.Stat(persistPath); err == nil {
+		// 落盘已存在，加载
+		vault, _ = securemem.NewMemoryVault()
+		if err := vault.LoadFromFile(persistPath); err != nil {
+			fmt.Println("Load failed:", err)
+			return
+		}
+		fmt.Println("Vault restored from disk.")
+	} else {
+		// 初次运行，创建并添加数据
+		vault, _ = securemem.NewMemoryVault()
+		vault.Put("user_42", &User{ID: 42, Name: "Alice", Email: "alice@example.com"})
+		if err := vault.PersistToFile(persistPath); err != nil {
+			fmt.Println("Persist failed:", err)
+			return
+		}
+		fmt.Println("Vault created and persisted.")
 	}
 
-	// 模拟加密保存结构体
-	user := User{ID: 42, Name: "Alice", Email: "alice@example.com"}
-	if err := vault.Put("user1", user); err != nil {
-		log.Fatalf("Put failed: %v", err)
+	// 读取数据
+	var u User
+	if err := vault.Get("user_42", &u); err != nil {
+		fmt.Println("Get failed:", err)
+		return
 	}
-	fmt.Println("User encrypted and stored in memory")
-
-	var recovered User
-	if err := vault.Get("user1", &recovered); err != nil {
-		log.Fatalf("Get failed: %v", err)
-	}
-	fmt.Printf("Decrypted User: %+v\n", recovered)
+	fmt.Printf("Decrypted User: %+v\n", u)
 }

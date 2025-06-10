@@ -8,10 +8,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"sync"
 )
 
-// MemoryVault securely stores encrypted values in memory.
+// MemoryVault securely stores encrypted values in memory and supports persistence.
 type MemoryVault struct {
 	key  []byte
 	db   map[string][]byte
@@ -19,13 +20,18 @@ type MemoryVault struct {
 	gcm  cipher.AEAD
 }
 
-// NewMemoryVault creates a new vault and generates a random AES-GCM key.
+// NewMemoryVault creates a new vault with a random key.
 func NewMemoryVault() (*MemoryVault, error) {
 	key := make([]byte, 32) // AES-256
 	if _, err := rand.Read(key); err != nil {
 		return nil, fmt.Errorf("failed to generate key: %w", err)
 	}
 
+	return NewMemoryVaultWithKey(key)
+}
+
+// NewMemoryVaultWithKey creates a vault with a provided AES-256 key.
+func NewMemoryVaultWithKey(key []byte) (*MemoryVault, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create cipher: %w", err)
@@ -43,7 +49,6 @@ func NewMemoryVault() (*MemoryVault, error) {
 	}, nil
 }
 
-// Put stores an encrypted version of the struct under the given key.
 func (v *MemoryVault) Put(key string, val interface{}) error {
 	v.lock.Lock()
 	defer v.lock.Unlock()
@@ -63,7 +68,6 @@ func (v *MemoryVault) Put(key string, val interface{}) error {
 	return nil
 }
 
-// Get retrieves and decrypts the value associated with key into dest.
 func (v *MemoryVault) Get(key string, dest interface{}) error {
 	v.lock.RLock()
 	defer v.lock.RUnlock()
@@ -87,4 +91,48 @@ func (v *MemoryVault) Get(key string, dest interface{}) error {
 	}
 
 	return json.Unmarshal(plaintext, dest)
+}
+
+// PersistToFile saves encrypted in-memory data to disk.
+func (v *MemoryVault) PersistToFile(path string) error {
+	v.lock.RLock()
+	defer v.lock.RUnlock()
+
+	blob, err := json.Marshal(v.db)
+	if err != nil {
+		return fmt.Errorf("marshal vault map failed: %w", err)
+	}
+
+	// Encrypt entire blob
+	nonce := make([]byte, v.gcm.NonceSize())
+	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+		return fmt.Errorf("generate nonce failed: %w", err)
+	}
+	ciphertext := v.gcm.Seal(nonce, nonce, blob, nil)
+
+	return os.WriteFile(path, ciphertext, 0600)
+}
+
+// LoadFromFile loads encrypted data from disk and restores the vault.
+func (v *MemoryVault) LoadFromFile(path string) error {
+	v.lock.Lock()
+	defer v.lock.Unlock()
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	nonceSize := v.gcm.NonceSize()
+	if len(data) < nonceSize {
+		return errors.New("invalid file data")
+	}
+
+	nonce := data[:nonceSize]
+	ciphertext := data[nonceSize:]
+	plaintext, err := v.gcm.Open(nil, nonce, ciphertext, nil)
+	if err != nil {
+		return fmt.Errorf("decryption failed: %w", err)
+	}
+
+	return json.Unmarshal(plaintext, &v.db)
 }

@@ -48,6 +48,11 @@
                         "target": "/",
                         "type": "sefs",
                         "source": "./image"
+                    },
+                    {
+                        "target": "/data-secure",
+                        "type": "sefs",
+                        "source": "./data-secure"
                     }
                 ]
             }
